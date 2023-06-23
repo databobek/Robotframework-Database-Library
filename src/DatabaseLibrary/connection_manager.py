@@ -105,20 +105,20 @@ class ConnectionManager(object):
         try:
             module = importlib.import_module("cx_Oracle")
             self.db_api_module_name = "oracle"
-            dbPort = dbPort or 1521
+            dbPort = dbPort
             logger.info(
                 "Connecting using: %s.connect(user=%s, password=%s, db=%s) "
                 % (dbapiModuleName, dbUsername, dbPassword, dbName)
             )
-            if dbSid == 'None':
-                self.connection = module.connect(
+            if dbSid != 'None':
+                self._dbconnection = module.connect(
                     dsn=dbSid,
                     user=dbUsername,
                     password=dbPassword,
                     encoding="UTF-8",
                 )
             else:
-                self.connection = module.connect(
+                self._dbconnection = module.connect(
                     dsn=f"{dbHost}:{dbPort}/{dbName}",
                     user=dbUsername,
                     password=dbPassword,
