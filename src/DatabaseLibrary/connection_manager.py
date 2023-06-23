@@ -79,6 +79,53 @@ class ConnectionManager(object):
             raise
 
     @func_set_timeout(10 * 60)
+    def connect_to_oracle(
+        self,
+        dbapiModuleName: str = None,
+        dbName: str = None,
+        dbUsername: str = None,
+        dbPassword: str = None,
+        dbHost: str = None,
+        dbPort: str = None,
+        dbSid: str = None
+    ):
+        """Connect to oracle and set the _db_connection object
+
+        Args:
+            dbHost (str): hostname to connect to
+            dbName (str): name of db
+            dbUsername (str): username for connection
+            dbPassword (str): password for user
+            dbPort (str): port of db
+            dbSid (str): service alias used by tns connection
+        Raises:
+            ImportError: Could not connect, oracle connector is missing.
+            Exception: Something unexpected happened. Could not connect.
+        """
+        try:
+            module = importlib.import_module("cx_Oracle")
+            self.db_api_module_name = "oracle"
+            dbPort = dbPort or 1521
+            oracle_dsn = module.makedsn(
+                host=dbHost, port=dbPort, service_name=dbName
+            ) if not dbSid else dbSid
+            logger.info(
+                "Connecting using: %s.connect(user=%s, password=%s, dsn=%s) "
+                % (dbapiModuleName, dbUsername, dbPassword, oracle_dsn)
+            )
+            self._dbconnection = module.connect(
+                user=dbUsername, password=dbPassword, dsn=oracle_dsn
+            )
+        except ImportError:
+            logger.error(
+                "Module for connecting to Oracle was not found. Report this to maintainers."
+            )
+            raise
+        except Exception as ex:
+            logger.error(f"Unexpected errors when connecting to database: {str(ex)}")
+            raise
+
+    @func_set_timeout(10 * 60)
     def connect_to_databricks(
         self, dbHost: str, dbToken: str, dbHttpPath: str, dbCatalog: str, dbSchema: str
     ):
@@ -277,18 +324,6 @@ class ConnectionManager(object):
                     % (dbName, dbHost, dbPort, dbUsername, dbPassword),
                     "",
                     "",
-                )
-            elif dbapiModuleName in ["cx_Oracle"]:
-                dbPort = dbPort or 1521
-                oracle_dsn = db_api_2.makedsn(
-                    host=dbHost, port=dbPort, service_name=dbName
-                )
-                logger.info(
-                    "Connecting using: %s.connect(user=%s, password=%s, dsn=%s) "
-                    % (dbapiModuleName, dbUsername, dbPassword, oracle_dsn)
-                )
-                self._dbconnection = db_api_2.connect(
-                    user=dbUsername, password=dbPassword, dsn=oracle_dsn
                 )
             elif dbapiModuleName in ["teradata"]:
                 dbPort = dbPort or 1025
