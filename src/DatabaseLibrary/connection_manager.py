@@ -108,7 +108,7 @@ class ConnectionManager(object):
             dbPort = dbPort or 1521
             oracle_dsn = module.makedsn(
                 host=dbHost, port=dbPort, service_name=dbName
-            ) if not dbSid else dbSid
+            ) if dbSid != 'None' else dbSid
             logger.info(
                 "Connecting using: %s.connect(user=%s, password=%s, dsn=%s) "
                 % (dbapiModuleName, dbUsername, dbPassword, oracle_dsn)
