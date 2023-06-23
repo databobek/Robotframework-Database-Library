@@ -106,16 +106,24 @@ class ConnectionManager(object):
             module = importlib.import_module("cx_Oracle")
             self.db_api_module_name = "oracle"
             dbPort = dbPort or 1521
-            oracle_dsn = module.makedsn(
-                host=dbHost, port=dbPort, service_name=dbName
-            ) if dbSid != 'None' else dbSid
             logger.info(
-                "Connecting using: %s.connect(user=%s, password=%s, dsn=%s) "
-                % (dbapiModuleName, dbUsername, dbPassword, oracle_dsn)
+                "Connecting using: %s.connect(user=%s, password=%s, db=%s) "
+                % (dbapiModuleName, dbUsername, dbPassword, dbName)
             )
-            self._dbconnection = module.connect(
-                user=dbUsername, password=dbPassword, dsn=oracle_dsn
-            )
+            if dbSid == 'None':
+                self.connection = module.connect(
+                    dsn=dbSid,
+                    user=dbUsername,
+                    password=dbPassword,
+                    encoding="UTF-8",
+                )
+            else:
+                self.connection = module.connect(
+                    dsn=f"{dbHost}:{dbPort}/{dbName}",
+                    user=dbUsername,
+                    password=dbPassword,
+                    encoding="UTF-8",
+                )
         except ImportError:
             logger.error(
                 "Module for connecting to Oracle was not found. Report this to maintainers."
