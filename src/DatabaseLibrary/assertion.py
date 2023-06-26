@@ -267,7 +267,7 @@ class Assertion:
             "teradata": f"SELECT table_name FROM DBC.TablesV WHERE TableKind='T' AND table_name='{table_name}'",
         }
         select_statement = table_exists.get(
-            self.db_api_module_name,
+            self.db_api_module_name.lower(),
             f"SELECT * FROM information_schema.tables WHERE table_name='{table_name}'",
         )
 
@@ -286,8 +286,14 @@ class Assertion:
         """
         message = f"Table {table_name} Must Exist in {schema_name}"
         logger.info(f"Asserting: {message}")
-
-        select_statement = f"SELECT * FROM information_schema.tables WHERE table_name='{table_name}' and table_schema='{schema_name}'"
+        #TODO: Add supported db technology table exist check with schema
+        table_exists = {
+            "cx_oracle": f"SELECT * FROM all_objects WHERE object_type IN ('TABLE','VIEW') AND owner = UPPER('{schema_name}') AND object_name = UPPER('{table_name}')",
+        }
+        select_statement = table_exists.get(
+            self.db_api_module_name.lower(),
+           f"SELECT * FROM information_schema.tables WHERE table_name='{table_name}' and table_schema='{schema_name}'",
+        )
 
         self._asserted_query_wrapper(select_statement, 0, gt, message)
 
