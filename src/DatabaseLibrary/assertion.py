@@ -260,7 +260,7 @@ class Assertion:
         message = f"Table {table_name} Must Exist"
         logger.info(f"Asserting: {message}")
         table_exists = {
-            "oracle": f"SELECT * FROM all_objects WHERE object_type IN ('TABLE','VIEW') AND owner = SYS_CONTEXT('USERENV', 'SESSION_USER') AND object_name = UPPER('{table_name}')",
+            "oracle": f"SELECT * FROM all_objects WHERE object_type IN ('TABLE','VIEW') AND owner = SYS_CONTEXT('USERENV', 'SESSION_USER') AND object_name = '{table_name}'",
             "sqlite3": f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}' COLLATE NOCASE",
             "ibm_db": f"SELECT name FROM SYSIBM.SYSTABLES WHERE type='T' AND name=UPPER('{table_name}')",
             "ibm_db_dbi": f"SELECT name FROM SYSIBM.SYSTABLES WHERE type='T' AND name=UPPER('{table_name}')",
@@ -288,7 +288,7 @@ class Assertion:
         logger.info(f"Asserting: {message}")
         #TODO: Add supported db technology table exist check with schema
         table_exists = {
-            "oracle": f"SELECT * FROM all_objects WHERE object_type IN ('TABLE','VIEW') AND owner = UPPER('{schema_name}') AND object_name = UPPER('{table_name}')",
+            "oracle": f"SELECT * FROM all_objects WHERE object_type IN ('TABLE','VIEW') AND owner = UPPER('{schema_name}') AND object_name = '{table_name}'",
         }
         select_statement = table_exists.get(
             self.db_api_module_name.lower(),
