@@ -20,6 +20,8 @@ from func_timeout import FunctionTimedOut, func_set_timeout
 from robot.api import logger
 from robot.api.deco import keyword, not_keyword
 from robot.libraries.Collections import Collections
+import requests
+import json
 
 from .exceptions import TechnicalTestFailure, TestFailure
 
@@ -363,3 +365,23 @@ class Query:
                 self._dbconnection.rollback()
         except Exception as ex:
             logger.error(f"Error during cleanup: {ex}")
+
+    @keyword("Save Variables in Db")
+    def save_variables_in_db(self, api_key: str, variable_group_id: int, execution_id: int,   variables: Dict[str, Any]) -> None:
+        try:
+            endpoint = os.getenv("BACKEND_URL") or "http://backend:8888"
+            data = {
+                "access_key": api_key,
+                "execution_id": execution_id,
+                "variable_group_id": variable_group_id,
+                "variables": []
+            }
+            for k,v in variables.items():
+                data["variables"].append({"variable_value": v,  "variable_name": k, "variable_type": "OUTPUT"})
+            r = requests.post(endpoint + "/api_v2/runtime_variables/create_output", data=json.dumps(data), headers={"content-type": "application/json"})
+            print(data)
+            print(r.status_code)
+            assert r.status_code == 200
+        except:
+            raise Exception(
+                    f"Test failed because of a It was unable to store variables in DB")
