@@ -22,6 +22,7 @@ from robot.api.deco import keyword, not_keyword
 from robot.libraries.Collections import Collections
 import requests
 import json
+from decimal import Decimal
 
 from .exceptions import TechnicalTestFailure, TestFailure
 
@@ -218,7 +219,7 @@ class Query:
             for row_index in range(len(all_rows)):
                 d = {}
                 for column_index in range(len(all_rows[row_index])):
-                    d[col_names[column_index]] = all_rows[row_index][column_index]
+                    d[col_names[column_index]] = all_rows[row_index][column_index] if not isinstance(all_rows[row_index][column_index] , Decimal) else float(all_rows[row_index][column_index] )
                 mappedRows.append(d)
             cl.log_list(mappedRows)
             return mappedRows
