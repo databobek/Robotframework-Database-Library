@@ -65,5 +65,7 @@ class DatabaseLibrary(ConnectionManager, Query, Assertion):
     | # Teardown |
     | Disconnect from Database |
     """
+    def __init__(self, alias=None):
+        self.alias=alias
 
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
