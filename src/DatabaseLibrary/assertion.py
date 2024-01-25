@@ -289,6 +289,7 @@ class Assertion:
         #TODO: Add supported db technology table exist check with schema
         table_exists = {
             "oracle": f"SELECT * FROM all_objects WHERE object_type IN ('TABLE','VIEW') AND owner = UPPER('{schema_name}') AND object_name = '{table_name}'",
+            "databricks": f"SHOW TABLES  IN `{schema_name}` LIKE  '{table_name}'"
         }
         select_statement = table_exists.get(
             self.db_api_module_name.lower(),
