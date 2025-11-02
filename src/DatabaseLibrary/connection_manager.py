@@ -14,9 +14,13 @@
 
 import configparser as ConfigParser
 import importlib
+from typing import Optional
 
+import textwrap
 from func_timeout import func_set_timeout
 from robot.api import logger
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 
 class ConnectionManager(object):
@@ -31,6 +35,40 @@ class ConnectionManager(object):
         self._dbconnection = None
         self.db_api_module_name = None
 
+    def _process_private_key_string(
+            self, private_key_string: str, passphrase: Optional[str] = None
+        ):
+            if 'BEGIN' in private_key_string.splitlines()[0] and 'END' in private_key_string.splitlines()[0]:
+                if 'ENCRYPTED' in private_key_string:
+                    begin_string = "-----BEGIN ENCRYPTED PRIVATE KEY-----"
+                    end_string = "-----END ENCRYPTED PRIVATE KEY-----"
+                else:
+                    begin_string = "-----BEGIN PRIVATE KEY-----"
+                    end_string = "-----END PRIVATE KEY-----"
+                private_key_string = private_key_string.replace(f"{begin_string} ", "")
+                private_key_string = private_key_string.replace(f" {end_string}", "")
+
+                body = "\n".join(textwrap.wrap(private_key_string.strip(), 64))
+
+                private_key_string = f"""{begin_string}
+{body}
+{end_string}"""
+            try:
+                private_key = serialization.load_pem_private_key(
+                    private_key_string.encode("utf-8"),
+                    password=passphrase.encode("utf-8") if passphrase else None,
+                    backend=default_backend(),
+                )
+                private_key_bytes = private_key.private_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+                return private_key_bytes
+            except Exception as ex:
+                raise Exception(f"Error processing private key string: {str(ex)}")
+
+
     @func_set_timeout(10 * 60)
     def connect_to_snowflake(
         self,
@@ -40,6 +78,7 @@ class ConnectionManager(object):
         dbSchema: str,
         dbAccount: str,
         dbWarehouse: str,
+        dbPrivateKey: str = 'None'
     ):
         """Connect to Snowflake and set the _dbconnection object.
 
@@ -50,6 +89,7 @@ class ConnectionManager(object):
             dbSchema (str): name of the schema to connect to
             dbAccount (str): name of the Snowflake Account to use
             dbWarehouse (str): name of the warehouse to connect to
+            dbPrivateKey (Optional[str]): RSA private key to connect to
 
         Raises:
             ImportError: Could not connect, snowflake connector is missing.
@@ -61,14 +101,29 @@ class ConnectionManager(object):
             logger.info(
                 f"Connecting using : snowflake.connector.connect(db={dbName}, user={dbUsername}, passwd={dbPassword}, account={dbAccount}, schema={dbSchema}, warehouse={dbWarehouse}) "
             )
-            self._dbconnection = db_api_2.connect(
-                user=dbUsername,
-                password=dbPassword,
-                account=dbAccount,
-                warehouse=dbWarehouse,
-                database=dbName,
-                schema=dbSchema,
-            )
+            if dbPrivateKey != 'None':
+                private_key_bytes = self._process_private_key_string(
+                    dbPrivateKey,
+                    dbPassword
+                )
+                self._dbconnection = db_api_2.connect(
+                    user=dbUsername,
+                    account=dbAccount,
+                    warehouse=dbWarehouse,
+                    database=dbName,
+                    schema=dbSchema,
+                    authenticator="SNOWFLAKE_JWT",
+                    private_key=private_key_bytes
+                )
+            else:
+                self._dbconnection = db_api_2.connect(
+                    user=dbUsername,
+                    password=dbPassword,
+                    account=dbAccount,
+                    warehouse=dbWarehouse,
+                    database=dbName,
+                    schema=dbSchema,
+                )
         except ImportError:
             logger.error(
                 "Module for connecting to Snowflake was not found. Report this to maintainers."
